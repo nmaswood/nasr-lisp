@@ -2,15 +2,27 @@ from enum import Enum
 import re
 import pdb
 
-__all__ = ['Type', "Node", "parse"]
-
 Type = Enum('Type', 'Literal Expr')
+
+class ParserException(Exception):
+    pass
 
 class Node():
 
-    def __init__(self, _type, val, children = None):
+    """
+    Unit representation of the AST
 
-        self.type = _type
+    type
+        Type enum
+    val
+        String value of the node
+    children
+        arguments of node
+    """
+
+    def __init__(self, node_type, val, children = None):
+
+        self.type = node_type
         self.value = val
         self.children = children or []
 
@@ -20,7 +32,13 @@ class Node():
             ret += child.__str__(level+1)
         return ret
 
-def validate(string):
+def _validate(string):
+
+    """
+    Ensures that parens are equally balanced
+
+    String -> Bool
+    """
 
     stack = []
     left_paren = False
@@ -45,7 +63,14 @@ def validate(string):
 
     return not stack
 
-def trim(string):
+def _trim(string):
+
+    """
+
+    Removes strings and excess newline characters
+    String -> String
+
+    """
 
     string = string.replace("\n", "")
     string = ' '.join(string.split())
@@ -53,11 +78,27 @@ def trim(string):
 
     return ' '.join(string)
 
-def is_bracketed(string):
+def _is_bracketed(string):
+
+    """
+    Checks if a string is bracketed (foo)
+
+    String -> Boolean
+
+    """
 
     return string.startswith("(") and string.endswith(")")
 
-def split_into_units(string):
+def _split_into_units(string):
+
+    """
+    Splits a string into a function and its arguments
+
+    (a (b c) (d)) ->  [a, (b c), (d)]
+
+    String -> List<String>
+
+    """
 
     big_buffer = []
     _buffer = []
@@ -95,6 +136,13 @@ def split_into_units(string):
 
 def parse(string):
 
+    """
+
+    Parses a string, if possible into an AST
+    String -> Node
+
+    """
+
     def _parse(string):
 
         the_type  = Type.Expr if is_bracketed(string) else Type.Literal
@@ -102,6 +150,10 @@ def parse(string):
         func_name = splat[0]
 
         return Node(the_type, func_name, [_parse(x) for x in splat[1:]])
+
+
+    if not _validate(string):
+        raise ParserException("This string has mismatched parens!!!")
 
     trimmed = trim(string)
 
