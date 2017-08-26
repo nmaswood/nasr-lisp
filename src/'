@@ -1,0 +1,117 @@
+from enum import Enum
+import re
+import pdb
+from string import printable
+
+printable_sets = set(printable) - set("()")
+
+
+Type = Enum('Type', 'Literal Expr Empty')
+
+def create_empty_node():
+    return Node(Type.Empty,None, None)
+
+class Node():
+
+    def __init__(self, _type, val, children = None):
+
+        self.type = _type
+        self.value = val
+        self.children = children or []
+
+    def __str__(self, level=0):
+        ret = "\t"*level+repr(self.value)+"\n"
+        for child in self.children:
+            ret += child.__str__(level+1)
+        return ret
+
+def is_paren_balanced(string):
+
+    stack = []
+    for letter in string:
+
+        if letter == '(':
+            stack.insert(0,'(')
+        elif letter == ')':
+
+            if not stack:
+                return False
+
+            letter_prime = stack.pop()
+
+            if letter_prime ==  ')':
+                return False
+
+    return not stack
+
+
+
+p = """
+(defun factorial (N)
+  (if (= N 1)
+      1
+    (* N (factorial (- N 1)))))
+"""
+
+
+def trim(string):
+
+    string = string.replace("\n", "")
+    string = ' '.join(string.split())
+    string = string.split()
+
+    return ' '.join(string)
+
+def is_bracketed(string):
+
+    return string.startswith("(") and string.endswith(")")
+
+def split_into_units(string):
+
+    big_buffer = []
+    _buffer = []
+    stack = []
+
+    if is_bracketed(string):
+        string = string[1:-1]
+
+    for idx, letter in enumerate(string):
+        _buffer.append(letter)
+
+        if letter == " " and not stack:
+            big_buffer.append(''.join(_buffer))
+            _buffer = []
+
+        if letter == "(":
+            if not stack:
+                _buffer = _buffer[:-1]
+                big_buffer.append(''.join(_buffer))
+                _buffer = ['(']
+            stack.append("(")
+        elif letter == ")":
+            stack.pop(0)
+
+    if _buffer:
+        big_buffer.append(''.join(_buffer))
+
+    return [token.strip() for token in big_buffer if token]
+
+def parse(string):
+
+    if not string:
+        return create_empty_node()
+
+    splat = split_into_units(string)
+    func_name = splat[0]
+
+    the_type  = Type.Expr if is_bracketed(string) else Type.Literal
+
+    return Node(the_type, func_name, [parse(x) for x in splat[1:]])
+
+
+
+trimmed = trim(p)
+res = split_into_units(trimmed)
+#foo = '(if (= N 1) 1 (* N (factorial (- N 1))))'
+foo = parse(trimmed)
+print ('f',foo)
