@@ -7,8 +7,7 @@ from unittest import mock
 sys.path.append('../src')
 sys_path.append(os_path.abspath('../src'))
 
-import parse
-
+import Parser
 class ParserTest(unittest.TestCase):
 
     """
@@ -18,14 +17,24 @@ class ParserTest(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_util(self):
-        self.assertTrue(parse.is_paren_balanced("(())"))
-        self.assertTrue(parse.is_paren_balanced(""))
-        self.assertTrue(parse.is_paren_balanced("()"))
-        self.assertFalse(parse.is_paren_balanced("("))
-        self.assertFalse(parse.is_paren_balanced("(("))
-        self.assertFalse(parse.is_paren_balanced("))"))
+    def test_validate(self):
 
+        self.assertTrue(Parser._validate("(())"))
+        self.assertTrue(Parser._validate(""))
+        self.assertTrue(Parser._validate("()"))
+        self.assertTrue(Parser._validate('")()()()()"()'))
+        self.assertFalse(Parser._validate("("))
+        self.assertFalse(Parser._validate("(("))
+        self.assertFalse(Parser._validate("))"))
+
+    def test_validate(self):
+
+        res = Parser._trim("young and       rich    ")
+        self.assertEqual(res, "young and rich")
+
+
+    def test_split_into_units(self):
+        pass
 
 if __name__ == "__main__":
 
