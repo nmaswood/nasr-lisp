@@ -1,11 +1,15 @@
 from enum import Enum
 import re
 import pdb
+from Functions import Functions
 
 Type = Enum('Type', 'Literal Expr')
-
 class ParserException(Exception):
     pass
+
+
+
+
 
 class Node():
 
@@ -31,6 +35,36 @@ class Node():
         for child in self.children:
             ret += child.__str__(level+1)
         return ret
+    def __repr__(self):
+        return (str(self))
+    def eval(self):
+
+        def _eval(node,defn = False):
+
+
+            if node.type == Type.Literal and not defn:
+                if _is_var and defn:
+                   if node.value not in Functions.defined_vars:
+                       return  str(node.value)
+                if _is_quoted(node.value):
+                    return str(node.value)
+                elif '.' in node.value:
+                    return float(node.value)
+                elif node.value.isdigit():
+                    return int(node.value)
+
+                return Functions.defined_vars[node.value]
+
+            expr_function = Functions.functions[node.value]
+
+            args = [_eval(x, True) for x in node.children]
+
+            if args[0] in {'defn'}:
+                return expr_function(*args)
+
+            return expr_function(*args)
+
+        return _eval(self)
 
 def _validate(string):
 
@@ -78,6 +112,27 @@ def _trim(string):
 
     return ' '.join(string)
 
+
+def _is_wrapped(string, char1, char2):
+
+    """
+    Checks if a string is wrapped by chars
+    String -> String  -> String ->  Boolean
+    """
+
+    return string.startswith(char1) and string.endswith(char2)
+
+def _is_quoted(string):
+
+    """
+
+    Checks if a string is bracketed (foo)
+
+    String -> Boolean
+
+    """
+    return _is_wrapped(string, '"', '"')
+
 def _is_bracketed(string):
 
     """
@@ -87,7 +142,11 @@ def _is_bracketed(string):
 
     """
 
-    return string.startswith("(") and string.endswith(")")
+    return _is_wrapped(string, '(', ')')
+
+def _is_var(string):
+
+    return not string.replace(".", '').isdigit() and not _is_quoted(string)
 
 def _split_into_units(string):
 
@@ -104,7 +163,7 @@ def _split_into_units(string):
     _buffer = []
     stack = []
 
-    if is_bracketed(string):
+    if _is_bracketed(string):
         string = string[1:-1]
 
     saw_left_quote = False
@@ -145,8 +204,8 @@ def parse(string):
 
     def _parse(string):
 
-        the_type  = Type.Expr if is_bracketed(string) else Type.Literal
-        splat = split_into_units(string)
+        the_type  = Type.Expr if _is_bracketed(string) else Type.Literal
+        splat = _split_into_units(string)
         func_name = splat[0]
 
         return Node(the_type, func_name, [_parse(x) for x in splat[1:]])
@@ -155,6 +214,19 @@ def parse(string):
     if not _validate(string):
         raise ParserException("This string has mismatched parens!!!")
 
-    trimmed = trim(string)
+    trimmed = _trim(string)
 
     return _parse(trimmed)
+
+s = '(def x 10)'
+res = parse(s)
+print (res.eval())
+
+s = '(+ 1 (+ 2.7 3 x))'
+
+res = parse(s)
+
+print (res)
+print (res.eval())
+
+
